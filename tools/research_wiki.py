@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
 ARIS Research Wiki — Helper utilities.
-Canonical helper for the /research-wiki skill and integration hooks in other
-skills. The SKILL.md prose for paper-reading skills (research-lit, arxiv,
-alphaxiv, deepxiv, semantic-scholar, exa-search, firecrawl-search) delegates
-ingest to this
-script; no skill duplicates the page-creation schema.
+Canonical helper for the /research-wiki skill and its paper, idea, experiment,
+and claim nodes. Selected pi-literature-review records enter through
+literature_import.py; no skill duplicates the page-creation schema.
 
 Usage:
     python3 research_wiki.py init <wiki_root>
@@ -86,9 +84,8 @@ def _arxiv_user_agent() -> str:
     arXiv rate-limits the default ``Python-urllib/x.y`` agent far more
     aggressively than a named client; sending a descriptive UA (with an
     optional contact address) lands requests in arXiv's more lenient pool.
-    The contact is read from ``ARIS_VERIFY_EMAIL`` — the same env var the
-    /research-lit skill already uses for the CrossRef polite pool — so no
-    address is hard-coded. Falls back to a contactless UA when unset.
+    The optional contact is read from ``ARIS_VERIFY_EMAIL`` so no address is
+    hard-coded. Falls back to a contactless UA when unset.
     """
     contact = os.environ.get("ARIS_VERIFY_EMAIL", "").strip()
     base = ("ARIS-research-wiki/1.0 "
@@ -717,6 +714,10 @@ def _render_paper_page(meta: dict, slug: str, thesis: str, tags: list[str]) -> s
         value_str = _yaml_quote(v) if v else "null"
         lines.append(f"  {k}: {value_str}")
     lines.append("tags: [" + ", ".join(_yaml_quote(t) for t in tags) + "]")
+    if meta.get("source_json"):
+        lines.append(f"source_json: {_yaml_quote(meta['source_json'])}")
+        lines.append(f"record_id: {_yaml_quote(meta['record_id'])}")
+        lines.append("record_sources: [" + ", ".join(_yaml_quote(s) for s in meta.get("record_sources", [])) + "]")
     lines.append(f"added: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
     lines.append("---")
     lines.append("")
@@ -769,7 +770,8 @@ def ingest_paper(wiki_root: str, *, arxiv_id: str = "", title: str = "",
                  venue: str = "", doi: str = "", thesis: str = "",
                  tags: list[str] | None = None,
                  update_on_exist: bool = False,
-                 prefetched_meta: dict | None = None) -> Path:
+                 prefetched_meta: dict | None = None,
+                 provenance: dict | None = None) -> Path:
     """Canonical paper-ingest entrypoint.
 
     Preferred: pass --arxiv-id and let the helper fetch metadata. If the
@@ -840,6 +842,8 @@ def ingest_paper(wiki_root: str, *, arxiv_id: str = "", title: str = "",
         }
     if doi:
         meta["doi"] = doi
+    if provenance:
+        meta.update(provenance)
 
     author_last = _last_name(meta["authors"][0]) if meta.get("authors") else ""
     slug = slugify(meta["title"], author_last, meta.get("year", 0))

@@ -6,3 +6,27 @@ export function nextHistory(
   prompt: string,
   response: string,
 ): Array<{ role: 'user' | 'assistant'; text: string }>;
+
+export type ReviewSessionResult = {
+  status: 'ok' | 'error' | 'aborted';
+  threadId: string;
+  requestedModel: string;
+  reportedModel: string | null;
+  stopReason: string | null;
+  answer?: string;
+  error?: string;
+};
+
+export function runReviewSession(options: {
+  project: string;
+  prompt: string;
+  files?: string[];
+  threadId?: string;
+  requestedModel: string;
+  complete: (prompt: string) => Promise<{
+    provider?: string;
+    model?: string;
+    stopReason?: string;
+    content?: Array<{ type: string; text?: string }>;
+  }>;
+}): Promise<ReviewSessionResult>;

@@ -1,7 +1,6 @@
 ---
 name: experiment-plan
 description: 'Turn a refined research proposal or method idea into a detailed, claim-driven experiment roadmap. Use after `research-refine`, or when the user asks for a detailed experiment plan, ablation matrix, evaluation protocol, run order, compute budget, or paper-ready validation that supports the core problem, novelty, simplicity, and any LLM / VLM / Diffusion / RL-based contribution.'
-allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, WebSearch, WebFetch
 ---
 
 # Experiment Plan: Claim-Driven, Paper-Oriented Validation
@@ -10,7 +9,7 @@ Refine and concretize: **$ARGUMENTS**
 
 ## Overview
 
-Use this skill after the method is stable enough that the next question becomes: **what exact experiments should we run, in what order, to defend the paper?** If the user wants the full chain in one request, prefer `/research-refine-pipeline`.
+Use this skill after the method is stable enough that the next question becomes: **what exact experiments should we run, in what order, to defend the paper?**
 
 The goal is not to generate a giant benchmark wishlist. The goal is to turn a proposal into a **claim -> evidence -> run order** roadmap that supports four things:
 
@@ -47,6 +46,8 @@ Extract:
 - **Which frontier primitive is central, if any**
 
 If these files do not exist, derive the same information from the user's prompt.
+
+For baseline papers, use the verified records already saved in `lit-search/*.json` or call the `pi-literature-search` tool from `pi-literature-review` for missing work. Read the same-basename JSON sidecar of the returned HTML report. Select baseline claims only from `results[]` records with `verified: true` and an actual DOI or arXiv ID; cite the exact JSON path, identifier, and source. Read abstracts and selected full text with `/lit-selection` and `/lit-synthesis` before claiming a baseline's method or result. `pi-web-access` `web_search` and `fetch_content` may supplement non-paper context; a paper discovered there remains an unverified lead until the literature plugin returns it. If the literature plugin is missing, report that baseline coverage cannot be verified.
 
 ### Phase 1: Freeze the Paper Claims
 
@@ -222,12 +223,10 @@ Tracker file: refine-logs/EXPERIMENT_TRACKER.md
 
 > Follow these shared protocols for all output files:
 > - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — create a manifest for runs with more than 15 artifacts
 > - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
 
 ## Key Rules
-
-- **Large file handling**: If the Write tool fails due to file size, immediately retry using Bash (`cat << 'EOF' > file`) to write in chunks. Do NOT ask the user for permission — just do it silently.
 
 - **Every experiment must defend a claim.** If it does not change a reviewer belief, cut it.
 - **Prefer a compact paper story.** Design the main table first, then add only the ablations that defend it.
@@ -241,7 +240,6 @@ Tracker file: refine-logs/EXPERIMENT_TRACKER.md
 ## Composing with Other Skills
 
 ```
-/research-refine-pipeline -> one-shot method + experiment planning
 /research-refine   -> method and claim refinement
 /experiment-plan   -> detailed experiment roadmap
 /run-experiment    -> execute the runs

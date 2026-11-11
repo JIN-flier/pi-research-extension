@@ -2,7 +2,6 @@
 name: analyze-results
 description: Analyze ML experiment results, compute statistics, generate comparison tables and insights. Use when user says "analyze results", "compare", or needs to interpret experimental data.
 argument-hint: "[results-path-or-description]"
-allowed-tools: Bash(*), Read, Grep, Glob, Write, Edit
 ---
 
 # Analyze Experiment Results
@@ -15,17 +14,19 @@ Analyze: $ARGUMENTS
 Find all relevant JSON/CSV result files:
 - Check `figures/`, `results/`, or project-specific output directories
 - Parse JSON results into structured data
+- Match each metric to its run ID, saved configuration, split, seed, and source file; exclude missing or failed runs from aggregate claims
 
 ### Step 2: Build Comparison Table
 Organize results by:
 - **Independent variables**: model type, hyperparameters, data config
 - **Dependent variables**: primary metric (e.g., perplexity, accuracy, loss), secondary metrics
-- **Delta vs baseline**: always compute relative improvement
+- **Delta vs baseline**: compute both absolute and relative differences when the metric permits; state direction and units
 
 ### Step 3: Statistical Analysis
 - If multiple seeds: report mean +/- std, check reproducibility
 - If sweeping a parameter: identify trends (monotonic, U-shaped, plateau)
 - Flag outliers or suspicious results
+- Label proxy or simulation evaluations explicitly; follow [experiment integrity](../shared-references/experiment-integrity.md)
 
 ### Step 4: Generate Insights
 For each finding, structure as:

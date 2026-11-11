@@ -3,20 +3,17 @@
 #
 # Compares arXiv IDs referenced in recent session artifacts against those
 # already ingested into `research-wiki/papers/`. Reports the delta so the
-# user can run `/research-wiki sync --arxiv-ids <missing>` to backfill.
+# user can inspect the missing references and choose which verified plugin
+# records to import.
 #
-# This is a best-effort diagnostic. Because ARIS has no canonical "papers
-# I actually read" log (unlike paper-writing's audit artifacts), scans
-# grep over likely sources and will miss papers read via channels it
-# doesn't scan. See `shared-references/integration-contract.md` §6
-# (Verifier or diagnostic) — this tool is intentionally non-blocking.
+# This is a best-effort, non-blocking diagnostic over likely stage outputs.
 #
 # Usage:
 #   bash tools/verify_wiki_coverage.sh <wiki_root> [--scan <path> ...] [--json-out <path>]
 #
 # Defaults:
-#   --scan: scans CWD-level `.aris/traces/`, `paper/`, `PAPER_PLAN.md`,
-#           `NARRATIVE_REPORT.md`, `references.bib` if they exist.
+#   --scan: scans CWD-level `idea-stage/`, `refine-logs/`,
+#           `review-stage/`, `paper/`, and `references.bib` if they exist.
 #   --json-out: <wiki_root>/.wiki-coverage-report.json
 #
 # Exit codes:
@@ -50,7 +47,7 @@ WIKI_ROOT="$(cd "$WIKI_ROOT" && pwd)"
 
 # Default scan set: obvious places where arxiv IDs show up
 if [[ ${#SCAN_PATHS[@]} -eq 0 ]]; then
-    for p in .aris/traces paper PAPER_PLAN.md NARRATIVE_REPORT.md references.bib; do
+    for p in idea-stage refine-logs review-stage paper references.bib; do
         [[ -e "$p" ]] && SCAN_PATHS+=("$p")
     done
 fi
@@ -153,22 +150,7 @@ if [[ "$MISS_COUNT" -gt 0 ]]; then
     head -20 "$MISSING" | sed 's/^/    /' >&2
     [[ "$MISS_COUNT" -gt 20 ]] && echo "    ... ($((MISS_COUNT-20)) more)" >&2
     echo "" >&2
-    # Build comma-joined list up to 20 ids for backfill hint
-    HINT_IDS=$(head -20 "$MISSING" | paste -sd, -)
-    # Resolve helper path the same way the skills do (per
-    # skills/shared-references/wiki-helper-resolution.md)
-    HINT_SCRIPT=".aris/tools/research_wiki.py"
-    [[ -f "$HINT_SCRIPT" ]] || HINT_SCRIPT="tools/research_wiki.py"
-    [[ -f "$HINT_SCRIPT" ]] || { [[ -n "${ARIS_REPO:-}" ]] && HINT_SCRIPT="$ARIS_REPO/tools/research_wiki.py"; }
-    # Layer 4: global pointer file written by the installer/updater (#366).
-    if [[ -z "${ARIS_REPO:-}" && ! -f "$HINT_SCRIPT" && -f "$HOME/.aris/repo" ]]; then
-        ARIS_REPO=$(cat "$HOME/.aris/repo" 2>/dev/null) || true
-        [[ -n "$ARIS_REPO" ]] && HINT_SCRIPT="$ARIS_REPO/tools/research_wiki.py"
-    fi
-    [[ -f "$HINT_SCRIPT" ]] || HINT_SCRIPT="<resolve-via-shared-ref>/research_wiki.py"
-    echo "Backfill suggestion:" >&2
-    echo "    python3 \"$HINT_SCRIPT\" sync $WIKI_ROOT --arxiv-ids $HINT_IDS" >&2
-    [[ "$MISS_COUNT" -gt 20 ]] && echo "    (or --from-file to pass the full list)" >&2
+    echo "Import only explicitly selected, verified records from the matching lit-search JSON with /research-wiki." >&2
     echo "" >&2
 fi
 

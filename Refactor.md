@@ -1,4 +1,4 @@
-按你的选择，建议**删除 `research-lit`，由 `pi-literature-review` 接管论文搜索、选择、下载和 PDF 综合**。ARIS 保留 10 个研究决策类 skills；需要查论文的 skill 直接调用插件的 `pi-literature-search` 工具。一般网页资料使用 `pi-web-access` 的 `web_search`、`fetch_content`。这两个插件的职责和工具入口见各自说明：[pi-literature-review](https://github.com/flindenberger/pi-literature-review)、[pi-web-access](https://github.com/nicobailon/pi-web-access)。
+**删除 `research-lit`，由 `pi-literature-review` 接管论文搜索、选择、下载和 PDF 综合**。ARIS 保留 10 个研究决策类 skills；需要查论文的 skill 直接调用插件的 `pi-literature-search` 工具。一般网页资料使用 `pi-web-access` 的 `web_search`、`fetch_content`。这两个插件的职责和工具入口见各自说明：[pi-literature-review](https://github.com/flindenberger/pi-literature-review)、[pi-web-access](https://github.com/nicobailon/pi-web-access)。
 
 以下是文件级整理方案。
 
