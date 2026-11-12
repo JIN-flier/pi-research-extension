@@ -33,13 +33,16 @@ class PiReviewGateTests(unittest.TestCase):
         self.session.write_text(json.dumps(self.payload), encoding="utf-8")
         run = subprocess.run(
             [sys.executable, str(GATE), "--session", str(self.session),
-             "--executor-model", "anthropic/claude-test", "--review-scope-complete", *args],
+             "--review-scope-complete", *args],
             text=True, capture_output=True,
         )
         self.assertEqual(run.returncode, 0, run.stderr)
-        return json.loads(run.stdout)
+        result = json.loads(run.stdout)
+        self.assertNotIn("review_independence", result)
+        self.assertNotIn("identity_assurance", result)
+        return result
 
-    def test_cross_family_positive_pi_record_stops(self):
+    def test_positive_pi_record_stops_without_model_checks(self):
         result = self.gate()
         self.assertEqual(result["decision"], "stop")
         self.assertEqual(result["acceptance_status"], "accepted")
@@ -60,13 +63,23 @@ class PiReviewGateTests(unittest.TestCase):
         })
         self.assertEqual(self.gate()["decision"], "review_unavailable")
 
-    def test_same_family_or_missing_scope_cannot_acquit(self):
+    def test_legacy_executor_argument_is_ignored(self):
         same = self.gate("--executor-model", "openai/gpt-other")
-        self.assertEqual(same["decision"], "review_unavailable")
+        self.assertEqual(same["decision"], "stop")
+
+    def test_missing_or_mismatched_reviewer_metadata_is_not_a_gate(self):
+        self.payload.pop("model")
+        for patch in [
+            {"reportedModel": None}, {"reportedModel": "custom/opaque"},
+            {"reportedModel": 42}, {"requestedModel": "other/model"},
+        ]:
+            self.payload["rounds"][0].update(patch)
+            self.assertEqual(self.gate()["decision"], "stop")
+
+    def test_missing_scope_cannot_acquit(self):
         self.session.write_text(json.dumps(self.payload), encoding="utf-8")
         run = subprocess.run(
-            [sys.executable, str(GATE), "--session", str(self.session),
-             "--executor-model", "anthropic/claude-test"],
+            [sys.executable, str(GATE), "--session", str(self.session)],
             text=True, capture_output=True,
         )
         self.assertEqual(run.returncode, 0, run.stderr)

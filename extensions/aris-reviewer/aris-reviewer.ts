@@ -7,7 +7,8 @@ import type {
   ExtensionAPI,
   ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
-import { configureArisRepo, runReviewSession } from "./aris-reviewer-core.ts";
+import { runReviewSession } from "./review-session-manager.ts";
+import { configureArisRepo } from "../aris-repo-config.ts";
 
 const ReviewerConfig = Type.Object({
   provider: Type.String({ pattern: "^[^\\s/]+$" }),
@@ -25,16 +26,18 @@ function toolError(text: string) {
 export default function (pi: ExtensionAPI) {
   // ARIS_REPO locates package tools; reviewer paths always use ctx.cwd.
   configureArisRepo(
-    path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."),
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.."),
   );
 
   const reviewerPicker = {
-    description:
-      "选择 reviewer 模型（建议使用能力较强且与执行模型不同的模型）",
+    description: "选择 reviewer 模型（建议使用能力较强且与执行模型不同的模型）",
     handler: async (args: string, ctx: ExtensionCommandContext) => {
       const models = ctx.modelRegistry.getAvailable();
       if (!models.length) {
-        ctx.ui.notify("没有可用的 reviewer 模型，请先配置模型及认证。", "error");
+        ctx.ui.notify(
+          "没有可用的 reviewer 模型，请先配置模型及认证。",
+          "error",
+        );
         return;
       }
       const q = args.trim().toLowerCase();

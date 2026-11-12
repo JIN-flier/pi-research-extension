@@ -5,12 +5,17 @@ import test from 'node:test';
 
 const root = path.resolve(import.meta.dirname, '..');
 
-test('Pi package exposes the reviewer extension and all ARIS skills', () => {
+test('Pi package exposes all three tool extensions and all ARIS skills', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-  assert.deepEqual(manifest.pi.extensions, ['./extensions/aris-reviewer.ts']);
+  assert.deepEqual(manifest.pi.extensions, [
+    './extensions/aris-reviewer/aris-reviewer.ts',
+    './extensions/threat-scan/threat-scan.ts',
+    './extensions/review-gate/review-gate.ts',
+  ]);
   assert.deepEqual(manifest.pi.skills, ['./skills/aris']);
-  assert.equal(fs.existsSync(path.join(root, 'extensions/aris-reviewer.ts')), true);
-  assert.equal(fs.existsSync(path.join(root, 'extensions/aris-reviewer-core.ts')), true);
+  for (const entry of manifest.pi.extensions) {
+    assert.equal(fs.existsSync(path.join(root, entry)), true, entry);
+  }
 
   const skills = fs.readdirSync(path.join(root, 'skills/aris'), { withFileTypes: true })
     .filter(entry => entry.isDirectory() && fs.existsSync(path.join(root, 'skills/aris', entry.name, 'SKILL.md')));

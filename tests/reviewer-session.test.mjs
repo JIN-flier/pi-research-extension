@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { runReviewSession } from '../extensions/aris-reviewer-core.ts';
+import { runReviewSession } from '../extensions/aris-reviewer/review-session-manager.ts';
 
 async function projectForTest(t) {
   const project = await fs.mkdtemp(path.join(os.tmpdir(), 'aris-review-'));
@@ -65,6 +65,35 @@ test('follow-up uses saved thread history and appends a second review round', as
   const record = await savedSession(project, first.threadId);
   assert.deepEqual(record.rounds.map(round => round.result), ['First answer', 'Second answer']);
   assert.equal(record.history.length, 4);
+});
+
+test('separate thread IDs isolate reviewer history even when using the same model', async t => {
+  const project = await projectForTest(t);
+  const answer = text => ({ provider: 'openai', model: 'gpt-test', stopReason: 'stop',
+    content: [{ type: 'text', text }] });
+  const first = await runReviewSession({
+    project, prompt: 'TASK_A_INITIAL', requestedModel: 'openai/gpt-test',
+    complete: async () => answer('TASK_A_REVIEW'),
+  });
+  let newThreadPrompt;
+  const second = await runReviewSession({
+    project, prompt: 'TASK_B_INITIAL', requestedModel: 'openai/gpt-test',
+    complete: async prompt => { newThreadPrompt = prompt; return answer('TASK_B_REVIEW'); },
+  });
+  assert.notEqual(first.threadId, second.threadId);
+  assert.doesNotMatch(newThreadPrompt, /TASK_A/);
+  let followUpPrompt;
+  await runReviewSession({
+    project, threadId: first.threadId, prompt: 'TASK_A_REVISION', requestedModel: 'openai/gpt-test',
+    complete: async prompt => { followUpPrompt = prompt; return answer('TASK_A_FOLLOWUP'); },
+  });
+  assert.match(followUpPrompt, /TASK_A_INITIAL/);
+  assert.match(followUpPrompt, /TASK_A_REVIEW/);
+  assert.doesNotMatch(followUpPrompt, /TASK_B/);
+  const other = await savedSession(project, second.threadId);
+  assert.deepEqual(other.history, [
+    { role: 'user', text: 'TASK_B_INITIAL' }, { role: 'assistant', text: 'TASK_B_REVIEW' },
+  ]);
 });
 
 test('failed review is recorded and retry retains the same thread without false history', async t => {

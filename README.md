@@ -1,6 +1,6 @@
 # ARIS for Pi
 
-ARIS 是一个 Pi package，提供 **10 个研究决策 skills**、`aris_review` 审稿扩展和少量确定性工具。论文搜索、选文下载与 PDF 综合由 `pi-literature-review` 负责；普通网页搜索与读取由 `pi-web-access` 负责。ARIS 保留 idea、查新、知识库、方案、实验和审稿流程。
+ARIS 是一个 Pi package，提供 **10 个研究决策 skills**、`aris_review` 审稿工具、`threat_scan` 内容扫描工具和 `review_gate` 验收门禁。论文搜索、选文下载与 PDF 综合由 `pi-literature-review` 负责；普通网页搜索与读取由 `pi-web-access` 负责。ARIS 保留 idea、查新、知识库、方案、实验和审稿流程。
 
 ## 安装
 
@@ -12,9 +12,9 @@ pi install npm:pi-web-access --local
 pi install /absolute/path/to/ARIS --local
 ```
 
-将 `/absolute/path/to/ARIS` 替换为本仓库的绝对路径。若使用已发布的 ARIS Git 仓库，也可用 Pi 的 `git:github.com/OWNER/REPO` 包源替换本地路径。进入项目运行 `pi`，用 `/login` 配置模型，再用 `/aris-reviewer-picker` 打开 reviewer 模型选择器，或用 `/aris-reviewer-picker provider/model` 直接指定。也支持按名称或模型 ID 搜索；多个匹配时由你选择，无界面模式需提供能唯一确定模型的参数。需要审稿独立性时，选与执行模型不同的模型家族。
+将 `/absolute/path/to/ARIS` 替换为本仓库的绝对路径。若使用已发布的 ARIS Git 仓库，也可用 Pi 的 `git:github.com/OWNER/REPO` 包源替换本地路径。进入项目运行 `pi`，用 `/login` 配置模型，再用 `/aris-reviewer-picker` 打开 reviewer 模型选择器，或用 `/aris-reviewer-picker provider/model` 直接指定。也支持按名称或模型 ID 搜索；多个匹配时由你选择，无界面模式需提供能唯一确定模型的参数。
 
-Pi 从 `package.json` 加载 `extensions/aris-reviewer.ts` 和 `skills/aris/`。包内 Python 工具从安装目录的 `tools/` 调用；`.aris/` 中的审稿设置和会话、`lit-search/` 与 `research-wiki/` 都保存在**研究项目**中。开发本包时，修改后可在 Pi 中运行 `/reload`。
+Pi 从 `package.json` 加载 `extensions/aris-reviewer/aris-reviewer.ts`、`extensions/threat-scan/threat-scan.ts`、`extensions/review-gate/review-gate.ts` 和 `skills/aris/`。包内 Python 工具从安装目录的 `tools/` 调用；`.aris/` 中的审稿设置和会话、`lit-search/` 与 `research-wiki/` 都保存在**研究项目**中。开发本包时，修改后可在 Pi 中运行 `/reload`。
 
 `ARIS_REPO` 仅用于定位包内 Python 工具；reviewer 配置始终使用当前项目的 `.aris/reviewer.json`，会话始终写入该项目的 `.aris/reviewer-sessions/`，不受此环境变量影响。
 
@@ -25,6 +25,14 @@ reviewer 配置 `.aris/reviewer.json` 只保存 `provider` 和 `id`，例如：
 ```
 
 `aris_review` 只从此配置读取模型，不接受 `model` 覆盖参数。旧的 `{ "backend": "pi", "model": "provider/model" }` 配置需重新运行选择命令生成新格式；已有审稿会话仍可在选择同一模型后用原 `threadId` 继续，切换模型则需新建审稿线程。
+
+reviewer 与 executor 可以使用同一模型。首次调用 `aris_review` 不传 `threadId`，由工具创建独立审稿会话；后续修改复用返回的 `threadId`。每个审稿线程仅使用本次 prompt、文件快照及自己的历史，不会自动带入 executor 对话或其他审稿线程的上下文。
+
+`threat_scan` 是原生 Pi tool，参数为 `content`（实际文本）、`scope`（`all`、`context`、`strict`）和 `action`（`scan`、`first_message`、`quarantine`）。`scan` 默认 `context`，另外两个动作默认 `strict`；持久化或复用外部文本时显式指定 `strict`。它不读取路径、不写文件，`quarantine` 命中时仅返回替代占位文本，原文由调用方另行保留。未命中只代表未发现已知模式。
+
+`review_gate` 接收 `sessionPath` 和可选的 `reviewScopeComplete`。`reviewScopeComplete: true` 会请求用户通过 UI 确认完整审稿范围；无 UI、拒绝确认或无法确认时返回 `review_unavailable`。确认后仍需成功的最新审稿轮次、唯一的 `Score: X/10` 与 `Verdict: ready|almost|not ready`；分数 ≥6 且 verdict 为 `ready` 或 `almost` 才返回 `stop`。skills 使用这两个原生工具；保留的 Python 脚本用于内部依赖或旧 CLI 兼容，不用于绕过门禁确认。旧 CLI 的 `--executor-model` 参数仅为兼容而保留，传入值会被忽略。
+
+范围确认会展示本轮保存的审稿请求、reviewer 回复及其范围限制、会话/轮次/完成时间，以及实际输入文件的路径和快照 SHA-256；没有文件输入时明确标注为仅审查 prompt。Pi TUI 中可用方向键、PageUp/PageDown 滚动，Enter 确认、Escape 拒绝。快照哈希表示当时送审的文本版本，不代表当前工作区或 Git 版本；文件、版本或审查范围不符时应拒绝。缺失或损坏的范围证据不会进入确认，确认期间会话记录变化则需要重新调用门禁。
 
 ## 最短研究流程
 
@@ -39,7 +47,7 @@ reviewer 配置 `.aris/reviewer.json` 只保存 `provider` 和 `id`，例如：
 
 ## 开发验证
 
-使用 Node.js 22.19 或更高版本运行测试。审稿核心位于 `extensions/aris-reviewer-core.ts`，类型检查覆盖实际实现。
+使用 Node.js 22.19 或更高版本运行测试。审稿会话核心位于 `extensions/aris-reviewer/review-session-manager.ts`，门禁解析位于 `extensions/review-gate/evaluator.ts`，类型检查覆盖所有扩展实现。
 
 ```bash
 npm test
@@ -47,4 +55,4 @@ npm run typecheck
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-`tests/package-structure.test.mjs` 检查 10 个 skill、包入口和本地文档引用；Python 测试覆盖文献 JSON 导入与 Pi 审稿门禁。`.aris/reviewer-sessions/` 含完整提示、输入文件内容和审稿结果，按项目私有研究数据管理。
+Node 测试检查 10 个 skill、包入口和本地文档引用，使用实际 Pi loader 验证三个工具的注册与调用，并覆盖扫描规则与 Python 版一致性、隔离输出、门禁决策及 UI 确认分支。Python 测试覆盖文献 JSON 导入与旧 CLI 门禁。模型完成响应和 UI 确认在测试中使用测试替身，不发起真实模型请求。`.aris/reviewer-sessions/` 含完整提示、输入文件内容和审稿结果，按项目私有研究数据管理。

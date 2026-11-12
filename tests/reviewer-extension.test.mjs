@@ -3,13 +3,25 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import registerReviewer from '../extensions/aris-reviewer.ts';
+import registerReviewer from '../extensions/aris-reviewer/aris-reviewer.ts';
 
 const models = [
   { provider: 'openai', id: 'gpt-test-large', name: 'Large reviewer' },
   { provider: 'openai', id: 'gpt-test', name: 'Test reviewer' },
   { provider: 'custom', id: 'org/reviewer', name: 'Custom reviewer' },
 ];
+
+test('reviewer exposes the installed package root after moving into a subdirectory', () => {
+  const previous = process.env.ARIS_REPO;
+  try {
+    delete process.env.ARIS_REPO;
+    registerReviewer({ registerCommand() {}, registerTool() {} });
+    assert.equal(process.env.ARIS_REPO, path.resolve(import.meta.dirname, '..'));
+  } finally {
+    if (previous === undefined) delete process.env.ARIS_REPO;
+    else process.env.ARIS_REPO = previous;
+  }
+});
 
 async function setup(t, available = models) {
   const project = await fs.mkdtemp(path.join(os.tmpdir(), 'aris-extension-'));
