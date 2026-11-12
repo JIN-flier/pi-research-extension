@@ -1,3 +1,4 @@
+/** ARIS 原生工具模块；下方中文注释说明接口约定与关键边界。 */
 /**
  * Pi Agent Extension: Reviewer Gate.
  *
@@ -23,8 +24,10 @@ import {
   type ReviewerSession,
 } from "./evaluator.ts";
 
+/** 门禁动作：通过后停止、未达标继续、证据或确认不可用。 */
 export type ReviewDecision = "stop" | "continue" | "review_unavailable";
 
+/** 门禁的结构化输出，包含决策、验收状态及可用的审稿证据。 */
 export interface ReviewResult {
   decision: ReviewDecision;
   next_backend: "pi" | null;
@@ -36,12 +39,14 @@ export interface ReviewResult {
   verdict: ReviewVerdict | null;
 }
 
+/** 独立门禁判断所需的会话路径、项目目录和已确认范围状态。 */
 export interface EvaluateReviewGateInput {
   sessionPath: string;
   cwd: string;
   scopeComplete: boolean;
 }
 
+/** 统一生成不可验收结果，避免读取或校验失败被误报为通过。 */
 function unavailable(
   reason: string,
   threadId: string | null = null,
@@ -63,6 +68,7 @@ function unavailable(
  * Core decision logic. This function does not depend on Pi APIs and can be
  * tested independently.
  */
+/** 读取并校验会话后判断最新轮次；此核心入口不依赖 Pi UI。 */
 export async function evaluateReviewGate(
   input: EvaluateReviewGateInput,
 ): Promise<ReviewResult> {
@@ -86,6 +92,7 @@ export async function evaluateReviewGate(
   return evaluateSavedReview(session, input.scopeComplete);
 }
 
+/** 仅检查最新轮次：完整完成、范围已确认、评分格式有效后才应用验收阈值。 */
 function evaluateSavedReview(
   session: ReviewerSession,
   scopeComplete: boolean,
@@ -160,6 +167,7 @@ function evaluateSavedReview(
 
 // Show saved text as data, with terminal controls and invisible formatting
 // characters escaped so a filename or response cannot erase the dialog.
+/** 转义终端控制及不可见格式字符，防止保存的外部文本改变确认界面的显示。 */
 function displayText(text: string): string {
   return text.replace(/[\p{Cc}\p{Cf}]/gu, (ch) =>
     ch === "\n"
@@ -168,6 +176,7 @@ function displayText(text: string): string {
   );
 }
 
+/** 构造供用户核对的请求、回复及文件快照清单；先验证快照哈希再允许确认。 */
 function scopeConfirmation(
   session: ReviewerSession,
   sessionPath: string,
@@ -223,6 +232,7 @@ function scopeConfirmation(
   ].join("\n");
 }
 
+/** 将结构化门禁结果同时作为可读 JSON 与 details 返回。 */
 function toolResult(result: ReviewResult) {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
@@ -237,6 +247,7 @@ function toolResult(result: ReviewResult) {
  * supplied by the LLM is never trusted on its own. In non-interactive modes,
  * scopeComplete remains false and the gate fails closed.
  */
+/** 注册门禁工具；LLM 的 reviewScopeComplete 只触发人工确认，不能自行证明范围完整。 */
 export default function registerReviewGate(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "review_gate",

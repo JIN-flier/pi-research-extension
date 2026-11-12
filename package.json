@@ -9,7 +9,10 @@
     "extensions": [
       "./extensions/aris-reviewer/aris-reviewer.ts",
       "./extensions/threat-scan/threat-scan.ts",
-      "./extensions/review-gate/review-gate.ts"
+      "./extensions/review-gate/review-gate.ts",
+      "./extensions/research-wiki/research-wiki.ts",
+      "./extensions/literature_import/literature_import.ts",
+      "./extensions/capture_filter/capture_filter.ts"
     ],
     "skills": ["./skills/aris"]
   },

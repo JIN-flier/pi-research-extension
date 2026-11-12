@@ -1,3 +1,4 @@
+/** ARIS 原生工具模块；下方中文注释说明接口约定与关键边界。 */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
@@ -10,10 +11,13 @@ import { Type } from "typebox";
  *   strict  - context + persistence, backdoor and secrets
  */
 
+/** 扫描范围逐层包含：all、context、strict；持久化内容应显式使用 strict。 */
 export type ThreatScope = "all" | "context" | "strict";
 
+/** 工具支持扫描、首条解释和隔离占位三种动作。 */
 export type ThreatAction = "scan" | "first_message" | "quarantine";
 
+/** 单条规则：正则、稳定原因码及所属范围。 */
 interface ThreatPattern {
   regex: RegExp;
   id: string;
@@ -26,6 +30,7 @@ const WORD = String.raw`[\p{L}\p{N}_]`;
 const compile = (pattern: string): RegExp => new RegExp(pattern, "iu");
 
 // Each pattern is compiled once at module initialization.
+/** 已知威胁规则表；只做确定性模式识别，无法证明文本语义安全。 */
 const PATTERNS: readonly ThreatPattern[] = [
   // ── Classic prompt injection ─────────────────────────────
 
@@ -276,6 +281,7 @@ const PATTERNS: readonly ThreatPattern[] = [
 ];
 
 // Invisible / bidirectional Unicode characters.
+/** 需要显式报告的不可见 Unicode 字符集合，防止隐藏指令或混淆显示。 */
 export const INVISIBLE_CHARS: ReadonlySet<string> = new Set([
   "\u200B", // Zero Width Space
   "\u200C", // Zero Width Non-Joiner
@@ -296,16 +302,19 @@ export const INVISIBLE_CHARS: ReadonlySet<string> = new Set([
   "\u2069", // PDI
 ]);
 
+/** 运行时检查调用方提供的扫描范围。 */
 function isThreatScope(value: unknown): value is ThreatScope {
   return value === "all" || value === "context" || value === "strict";
 }
 
+/** 运行时检查调用方提供的动作。 */
 function isThreatAction(value: unknown): value is ThreatAction {
   return (
     value === "scan" || value === "first_message" || value === "quarantine"
   );
 }
 
+/** 拒绝未知扫描范围，避免悄悄降级到较弱规则。 */
 function validateScope(scope: string): asserts scope is ThreatScope {
   if (!isThreatScope(scope)) {
     throw new Error(`Unknown threat scope: ${scope}`);
@@ -317,6 +326,7 @@ function validateScope(scope: string): asserts scope is ThreatScope {
  *
  * all ⊂ context ⊂ strict
  */
+/** 按范围选择规则集合，高级范围包含低级范围的检测。 */
 function getPatterns(scope: ThreatScope): ThreatPattern[] {
   return PATTERNS.filter((pattern) => {
     if (scope === "all") {
@@ -337,6 +347,7 @@ function getPatterns(scope: ThreatScope): ThreatPattern[] {
  * Empty content returns [] without scope validation,
  * matching the original Python implementation.
  */
+/** 返回唯一的已知威胁原因码；结果只表示规则命中，不作事实或语义安全保证。 */
 export function scanForThreats(
   content: string,
   scope: ThreatScope = "context",
@@ -371,6 +382,7 @@ export function scanForThreats(
   return findings;
 }
 
+/** 把稳定规则 ID 映射为可读解释，未知 ID 使用回退文本。 */
 function formatThreatMessage(pid: string): string {
   if (pid.startsWith("invisible_unicode_")) {
     const code = pid.replace("invisible_unicode_", "");
@@ -388,6 +400,7 @@ function formatThreatMessage(pid: string): string {
 /**
  * Human-readable message for the first detected threat.
  */
+/** 只解释首条命中，适用于需要简短阻断原因的调用方。 */
 export function firstThreatMessage(
   content: string,
   scope: ThreatScope = "strict",
@@ -401,6 +414,7 @@ export function firstThreatMessage(
   return formatThreatMessage(findings[0]);
 }
 
+/** 生成可见的隔离占位文本；不把不可信标签重新注入为可执行指令。 */
 function buildQuarantinePlaceholder(findings: string[], label: string): string {
   // A label is also untrusted input. Use a short identifier only when it is
   // clean; otherwise even the replacement could carry an instruction payload.
@@ -423,6 +437,7 @@ function buildQuarantinePlaceholder(findings: string[], label: string): string {
  *
  * The caller is responsible for preserving the raw content.
  */
+/** 命中时返回占位文本及原因码，干净时返回原文；原始内容的落盘由调用方负责。 */
 export function quarantine(
   content: string,
   scope: ThreatScope = "strict",
@@ -441,6 +456,7 @@ export function quarantine(
 // Pi Agent Extension
 // ============================================================
 
+/** 注册原生扫描工具；根据 action 选择默认范围，并返回结构化命中信息。 */
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "threat_scan",

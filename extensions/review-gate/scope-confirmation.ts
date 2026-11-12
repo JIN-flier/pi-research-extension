@@ -1,7 +1,10 @@
+/** ARIS 原生工具模块；下方中文注释说明接口约定与关键边界。 */
 import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 /** Keep long requests, file lists and reviewer scope limits reachable in the
  * terminal viewport. The native confirm dialog has a non-scrolling title. */
+/** 构造可滚动的终端范围确认组件；返回渲染、输入、失效和释放接口。
+ * 取消或 AbortSignal 均视为拒绝，完成回调最多调用一次。 */
 export function createScopeConfirmationView(
   message: string,
   terminalRows: () => number,

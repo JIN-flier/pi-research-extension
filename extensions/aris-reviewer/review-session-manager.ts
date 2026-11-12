@@ -1,12 +1,15 @@
+/** ARIS 原生工具模块；下方中文注释说明接口约定与关键边界。 */
 import fs from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 
+/** 续审历史中的一条消息；只有成功轮次会追加到此历史。 */
 export type ReviewHistoryTurn = {
   role: "user" | "assistant";
   text: string;
 };
 
+/** 单次审稿尝试的审计记录，包含输入快照、请求/实际模型、完成状态及失败信息。 */
 export type ReviewRound = {
   number: number;
   startedAt: string;
@@ -21,6 +24,7 @@ export type ReviewRound = {
   error: string | null;
 };
 
+/** 版本化会话文件：将可复用对话历史与全部尝试记录分别保存。 */
 export type ReviewSessionRecord = {
   schemaVersion: 1;
   threadId: string;
@@ -29,6 +33,7 @@ export type ReviewSessionRecord = {
   rounds: ReviewRound[];
 };
 
+/** 模型适配层返回的数据；实际模型身份与停止原因用于判断是否完整完成。 */
 export type ReviewResponse = {
   provider?: string;
   model?: string;
@@ -36,6 +41,7 @@ export type ReviewResponse = {
   content?: Array<{ type: string; text?: string }>;
 };
 
+/** 会话执行依赖：项目目录、请求、输入文件及模型完成回调。 */
 export type ReviewSessionOptions = {
   project: string;
   prompt: string;
@@ -45,6 +51,7 @@ export type ReviewSessionOptions = {
   complete: (prompt: string) => Promise<ReviewResponse>;
 };
 
+/** 调用结果的判别联合：成功提供 answer，失败或取消提供 error。 */
 export type ReviewSessionResult = {
   threadId: string;
   requestedModel: string;
@@ -55,6 +62,7 @@ export type ReviewSessionResult = {
   | { status: "error" | "aborted"; error: string }
 );
 
+/** 只在第一个斜杠处分开 provider 与模型 ID，允许模型 ID 自身包含斜杠。 */
 export function parseModelRef(reference: string): {
   provider: string;
   id: string;
@@ -69,6 +77,7 @@ export function parseModelRef(reference: string): {
   };
 }
 
+/** 限制输入文件的解析路径位于项目内；调用方还需对 realpath 再检查以阻止符号链接逃逸。 */
 export function safeInputPath(project: string, candidate: string): string {
   const absolute = path.resolve(project, candidate);
   const relative = path.relative(path.resolve(project), absolute);
@@ -82,6 +91,7 @@ export function safeInputPath(project: string, candidate: string): string {
   return absolute;
 }
 
+/** 返回追加用户请求与成功回复的新历史，避免原地修改旧数组。 */
 export function nextHistory(
   history: ReviewHistoryTurn[],
   prompt: string,
@@ -94,6 +104,7 @@ export function nextHistory(
   ];
 }
 
+/** 先写同目录临时文件再 rename，避免读者看到半写入 JSON；失败时清理临时文件。 */
 async function saveSession(
   filename: string,
   session: ReviewSessionRecord,
@@ -115,6 +126,8 @@ async function saveSession(
 
 /** Persist one Pi reviewer attempt and return its result. A failed attempt is
  * visible in rounds but does not enter the conversation history used on retry. */
+/** 执行一个可续接审稿轮次：保存 pending 记录、调用模型、验证完成信息，再持久化最终状态。
+ * 失败尝试保留审计痕迹，但不进入后续模型使用的对话历史。 */
 export async function runReviewSession({
   project,
   prompt,

@@ -5,12 +5,15 @@ import test from 'node:test';
 
 const root = path.resolve(import.meta.dirname, '..');
 
-test('Pi package exposes all three tool extensions and all ARIS skills', () => {
+test('Pi package exposes all native tool extensions and all ARIS skills', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   assert.deepEqual(manifest.pi.extensions, [
     './extensions/aris-reviewer/aris-reviewer.ts',
     './extensions/threat-scan/threat-scan.ts',
     './extensions/review-gate/review-gate.ts',
+    './extensions/research-wiki/research-wiki.ts',
+    './extensions/literature_import/literature_import.ts',
+    './extensions/capture_filter/capture_filter.ts',
   ]);
   assert.deepEqual(manifest.pi.skills, ['./skills/aris']);
   for (const entry of manifest.pi.extensions) {

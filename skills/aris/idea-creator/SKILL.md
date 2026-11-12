@@ -40,7 +40,7 @@ Run `/novelty-check` for the reviewer's strongest candidates, supplying the rele
 
 Write `idea-stage/IDEA_REPORT.md` with the research direction, search JSON path(s), query/date/source coverage and failures, landscape, gap evidence, all candidates, reviewer model/thread, novelty results, pilot evidence if any, and a ranked shortlist. Lead each recommended idea with 2–4 concrete steps describing what would be built or run. For each cited paper include the exact DOI or arXiv ID and source record; mark unverified leads separately. Preserve rejected or deferred candidates with reasons.
 
-If `research-wiki/` exists, use the package's `tools/research_wiki.py upsert_idea` for new idea nodes and link `inspired_by` only to paper nodes already present in the wiki. An idea report does not automatically import every search hit. `/research-wiki` imports only papers the user selected from a `lit-search` JSON sidecar.
+If `research-wiki/` exists, call the native `research_wiki` tool with `action: "upsert_idea"` for new idea nodes and link `inspired_by` only to paper nodes already present in the wiki. An idea report does not automatically import every search hit. `/research-wiki` imports only papers the user selected from a `lit-search` JSON sidecar.
 
 ## Rules
 

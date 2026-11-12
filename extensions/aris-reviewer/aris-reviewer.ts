@@ -1,3 +1,4 @@
+/** ARIS 原生工具模块；下方中文注释说明接口约定与关键边界。 */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,11 +11,13 @@ import type {
 import { runReviewSession } from "./review-session-manager.ts";
 import { configureArisRepo } from "../aris-repo-config.ts";
 
+/** 审稿配置的运行时 schema：provider 不含斜杠，模型 ID 不含空白。 */
 const ReviewerConfig = Type.Object({
   provider: Type.String({ pattern: "^[^\\s/]+$" }),
   id: Type.String({ pattern: "^\\S+$" }),
 });
 
+/** 统一返回 Pi 可识别的工具错误，供 agent 展示并停止依赖操作。 */
 function toolError(text: string) {
   return {
     content: [{ type: "text" as const, text }],
@@ -23,6 +26,7 @@ function toolError(text: string) {
   };
 }
 
+/** 注册模型选择命令与审稿工具；模型从项目配置读取，认证和会话均由当前项目上下文提供。 */
 export default function (pi: ExtensionAPI) {
   // ARIS_REPO locates package tools; reviewer paths always use ctx.cwd.
   configureArisRepo(
