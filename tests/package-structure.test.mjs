@@ -10,7 +10,7 @@ test('Pi package exposes the reviewer extension and all ARIS skills', () => {
   assert.deepEqual(manifest.pi.extensions, ['./extensions/aris-reviewer.ts']);
   assert.deepEqual(manifest.pi.skills, ['./skills/aris']);
   assert.equal(fs.existsSync(path.join(root, 'extensions/aris-reviewer.ts')), true);
-  assert.equal(fs.existsSync(path.join(root, 'extensions/aris-reviewer-core.mjs')), true);
+  assert.equal(fs.existsSync(path.join(root, 'extensions/aris-reviewer-core.ts')), true);
 
   const skills = fs.readdirSync(path.join(root, 'skills/aris'), { withFileTypes: true })
     .filter(entry => entry.isDirectory() && fs.existsSync(path.join(root, 'skills/aris', entry.name, 'SKILL.md')));

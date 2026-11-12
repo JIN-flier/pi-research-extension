@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { configureArisRepo, parseModelRef, safeInputPath, nextHistory } from '../extensions/aris-reviewer-core.mjs';
+import { configureArisRepo, parseModelRef, safeInputPath, nextHistory } from '../extensions/aris-reviewer-core.ts';
 
 test('reviewer model reference separates provider from model ID', () => {
   assert.deepEqual(parseModelRef('openai/gpt-4o'), { provider: 'openai', id: 'gpt-4o' });

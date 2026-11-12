@@ -28,7 +28,7 @@ For each claim, identify the closest verified paper and write the exact overlap 
 
 ## 4. Independent review
 
-Write `NOVELTY_DOSSIER.md` in the project with the method, claims, search JSON paths, query/source/date coverage, closest verified records and their abstracts, full-text evidence where read, unresolved leads, and the verdict limits below. Call **`aris_review`** with a concise `prompt` and `files: ["NOVELTY_DOSSIER.md"]`. Configure an authenticated model using `/aris-reviewer provider/model` when needed. Capture the returned actual `Reviewer-Model` and `threadId`; pass that `threadId` on a follow-up round. If the review tool is unavailable, report `REVIEW_UNAVAILABLE` and give an evidence summary without presenting it as independent review.
+Write `NOVELTY_DOSSIER.md` in the project with the method, claims, search JSON paths, query/source/date coverage, closest verified records and their abstracts, full-text evidence where read, unresolved leads, and the verdict limits below. Call **`aris_review`** with a concise `prompt` and `files: ["NOVELTY_DOSSIER.md"]`. Configure an authenticated model using `/aris-reviewer-picker provider/model` when needed. Capture the returned actual `Reviewer-Model` and `threadId`; pass that `threadId` on a follow-up round. If the review tool is unavailable, report `REVIEW_UNAVAILABLE` and give an evidence summary without presenting it as independent review.
 
 ### Verdict limits
 

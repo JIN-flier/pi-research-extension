@@ -12,9 +12,19 @@ pi install npm:pi-web-access --local
 pi install /absolute/path/to/ARIS --local
 ```
 
-将 `/absolute/path/to/ARIS` 替换为本仓库的绝对路径。若使用已发布的 ARIS Git 仓库，也可用 Pi 的 `git:github.com/OWNER/REPO` 包源替换本地路径。进入项目运行 `pi`，用 `/login` 配置模型，再用 `/aris-reviewer provider/model` 选择一个已认证的 reviewer 模型。需要审稿独立性时，选与执行模型不同的模型家族。
+将 `/absolute/path/to/ARIS` 替换为本仓库的绝对路径。若使用已发布的 ARIS Git 仓库，也可用 Pi 的 `git:github.com/OWNER/REPO` 包源替换本地路径。进入项目运行 `pi`，用 `/login` 配置模型，再用 `/aris-reviewer-picker` 打开 reviewer 模型选择器，或用 `/aris-reviewer-picker provider/model` 直接指定。也支持按名称或模型 ID 搜索；多个匹配时由你选择，无界面模式需提供能唯一确定模型的参数。需要审稿独立性时，选与执行模型不同的模型家族。
 
 Pi 从 `package.json` 加载 `extensions/aris-reviewer.ts` 和 `skills/aris/`。包内 Python 工具从安装目录的 `tools/` 调用；`.aris/` 中的审稿设置和会话、`lit-search/` 与 `research-wiki/` 都保存在**研究项目**中。开发本包时，修改后可在 Pi 中运行 `/reload`。
+
+`ARIS_REPO` 仅用于定位包内 Python 工具；reviewer 配置始终使用当前项目的 `.aris/reviewer.json`，会话始终写入该项目的 `.aris/reviewer-sessions/`，不受此环境变量影响。
+
+reviewer 配置 `.aris/reviewer.json` 只保存 `provider` 和 `id`，例如：
+
+```json
+{ "provider": "your-provider", "id": "your-model-id" }
+```
+
+`aris_review` 只从此配置读取模型，不接受 `model` 覆盖参数。旧的 `{ "backend": "pi", "model": "provider/model" }` 配置需重新运行选择命令生成新格式；已有审稿会话仍可在选择同一模型后用原 `threadId` 继续，切换模型则需新建审稿线程。
 
 ## 最短研究流程
 
@@ -28,6 +38,8 @@ Pi 从 `package.json` 加载 `extensions/aris-reviewer.ts` 和 `skills/aris/`。
 这 10 个 skills 可按已有研究进度单独使用，不要求从第一步重新开始。若缺少文献插件，涉及新论文身份或查新的步骤应说明缺口；若缺少网页插件，普通网页补查不可用；若 reviewer 未配置或调用失败，报告 `REVIEW_UNAVAILABLE`，不把执行者自评当成独立审稿。
 
 ## 开发验证
+
+使用 Node.js 22.19 或更高版本运行测试。审稿核心位于 `extensions/aris-reviewer-core.ts`，类型检查覆盖实际实现。
 
 ```bash
 npm test

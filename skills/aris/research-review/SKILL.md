@@ -6,7 +6,7 @@ argument-hint: "[artifact-or-question]"
 
 # Research Review
 
-Review **$ARGUMENTS** using `aris_review`. Choose an authenticated reviewer with `/aris-reviewer provider/model`. The extension saves actual model identity, input file snapshots, response, errors, and `threadId` in `.aris/reviewer-sessions/`; see [review trace](../shared-references/review-tracing.md).
+Review **$ARGUMENTS** using `aris_review`. The extension saves actual model identity, input file snapshots, response, errors, and `threadId` in `.aris/reviewer-sessions/`; see [review trace](../shared-references/review-tracing.md).
 
 ## Prepare the review input
 

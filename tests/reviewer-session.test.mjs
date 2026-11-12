@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { runReviewSession } from '../extensions/aris-reviewer-core.mjs';
+import { runReviewSession } from '../extensions/aris-reviewer-core.ts';
 
 async function projectForTest(t) {
   const project = await fs.mkdtemp(path.join(os.tmpdir(), 'aris-review-'));

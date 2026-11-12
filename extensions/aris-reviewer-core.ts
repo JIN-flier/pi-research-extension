@@ -2,12 +2,67 @@ import fs from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
 
-export function configureArisRepo(packageRoot, env = process.env) {
+export type ReviewHistoryTurn = {
+  role: 'user' | 'assistant';
+  text: string;
+};
+
+export type ReviewRound = {
+  number: number;
+  startedAt: string;
+  completedAt: string | null;
+  requestedModel: string;
+  reportedModel: string | null;
+  stopReason: string | null;
+  status: 'pending' | 'ok' | 'error' | 'aborted';
+  prompt: string;
+  inputFiles: Array<{ path: string; sha256: string; content: string }>;
+  result: string | null;
+  error: string | null;
+};
+
+export type ReviewSessionRecord = {
+  schemaVersion: 1;
+  threadId: string;
+  model: string;
+  history: ReviewHistoryTurn[];
+  rounds: ReviewRound[];
+};
+
+export type ReviewResponse = {
+  provider?: string;
+  model?: string;
+  stopReason?: string;
+  content?: Array<{ type: string; text?: string }>;
+};
+
+export type ReviewSessionOptions = {
+  project: string;
+  prompt: string;
+  files?: string[];
+  threadId?: string;
+  requestedModel: string;
+  complete: (prompt: string) => Promise<ReviewResponse>;
+};
+
+export type ReviewSessionResult = {
+  threadId: string;
+  requestedModel: string;
+  reportedModel: string | null;
+  stopReason: string | null;
+} & (
+  | { status: 'ok'; answer: string }
+  | { status: 'error' | 'aborted'; error: string }
+);
+
+/** Expose the installed package's Python helpers. This never selects a project
+ * or changes where reviewer settings and sessions are stored. */
+export function configureArisRepo(packageRoot: string, env: NodeJS.ProcessEnv = process.env): string {
   env.ARIS_REPO ||= packageRoot;
   return env.ARIS_REPO;
 }
 
-export function parseModelRef(reference) {
+export function parseModelRef(reference: string): { provider: string; id: string } {
   const slash = reference.indexOf('/');
   if (slash < 1 || slash === reference.length - 1) {
     throw new Error('Reviewer model must be provider/model');
@@ -15,7 +70,7 @@ export function parseModelRef(reference) {
   return { provider: reference.slice(0, slash), id: reference.slice(slash + 1) };
 }
 
-export function safeInputPath(project, candidate) {
+export function safeInputPath(project: string, candidate: string): string {
   const absolute = path.resolve(project, candidate);
   const relative = path.relative(path.resolve(project), absolute);
   if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
@@ -24,11 +79,13 @@ export function safeInputPath(project, candidate) {
   return absolute;
 }
 
-export function nextHistory(history, prompt, response) {
+export function nextHistory(
+  history: ReviewHistoryTurn[], prompt: string, response: string,
+): ReviewHistoryTurn[] {
   return [...history, { role: 'user', text: prompt }, { role: 'assistant', text: response }];
 }
 
-async function saveSession(filename, session) {
+async function saveSession(filename: string, session: ReviewSessionRecord): Promise<void> {
   await fs.mkdir(path.dirname(filename), { recursive: true });
   const temporary = `${filename}.${randomUUID()}.tmp`;
   try {
@@ -42,12 +99,14 @@ async function saveSession(filename, session) {
 
 /** Persist one Pi reviewer attempt and return its result. A failed attempt is
  * visible in rounds but does not enter the conversation history used on retry. */
-export async function runReviewSession({ project, prompt, files = [], threadId, requestedModel, complete }) {
+export async function runReviewSession({
+  project, prompt, files = [], threadId, requestedModel, complete,
+}: ReviewSessionOptions): Promise<ReviewSessionResult> {
   const pair = parseModelRef(requestedModel);
   const id = threadId ?? randomUUID();
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error('Invalid ARIS review threadId.');
   const filename = path.join(project, '.aris', 'reviewer-sessions', `${id}.json`);
-  let session;
+  let session: ReviewSessionRecord;
   if (threadId) {
     try { session = JSON.parse(await fs.readFile(filename, 'utf8')); }
     catch { throw new Error('ARIS review thread not found.'); }
@@ -64,7 +123,7 @@ export async function runReviewSession({ project, prompt, files = [], threadId, 
     throw new Error('Legacy review thread lacks actual model identity; start a new review thread.');
   }
 
-  const round = {
+  const round: ReviewRound = {
     number: session.rounds.length + 1,
     startedAt: new Date().toISOString(),
     completedAt: null,
@@ -79,7 +138,7 @@ export async function runReviewSession({ project, prompt, files = [], threadId, 
   };
   session.rounds.push(round);
   try {
-    const inputs = [];
+    const inputs: string[] = [];
     for (const candidate of files) {
       const absolute = safeInputPath(project, candidate);
       const real = await fs.realpath(absolute);

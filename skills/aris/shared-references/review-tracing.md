@@ -39,7 +39,7 @@ The file is written atomically after input capture and again after the reviewer 
 
 `reportedModel` is taken from the completion response, not inferred from the requested model. Only a response with `stopReason: "stop"`, nonempty text, and a reported model counts as a successful review. A missing identity, truncated response, provider error, or abort is recorded without advancing history. The complete input snapshot makes later file edits distinguishable from the material actually reviewed. The tool result also reports `Reviewer-Model` and `threadId` for successful calls; check the record when auditing an acceptance decision.
 
-Configuration or authentication errors reported before a model call do not create a review thread. In that case configure `/aris-reviewer provider/model` and retry; do not claim a review was performed.
+Configuration or authentication errors reported before a model call do not create a review thread. In that case configure `/aris-reviewer-picker provider/model` and retry; do not claim a review was performed.
 
 For a scored Pi review, the deterministic acceptance gate reads the latest round directly from this file:
 
