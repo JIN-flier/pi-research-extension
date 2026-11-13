@@ -56,3 +56,16 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
 Node 测试检查 10 个 skill、包入口和本地文档引用，使用实际 Pi loader 验证原生工具的注册与调用，并覆盖 wiki 写入、文献导入、capture filter、扫描规则与 Python 版一致性、隔离输出、门禁决策及 UI 确认分支。Python 测试覆盖文献 JSON 导入与旧 CLI 门禁。模型完成响应和 UI 确认在测试中使用测试替身，不发起真实模型请求。`.aris/reviewer-sessions/` 含完整提示、输入文件内容和审稿结果，按项目私有研究数据管理。
+
+## Acknowledgements
+
++ [AI Scientist](https://github.com/SakanaAI/AI-Scientist) (Sakana) 
++ [AutoResearch](https://github.com/karpathy/autoresearch) (Karpathy) 
++ [FARS](https://analemma.ai/blog/introducing-fars/) (Analemma) 
++ [PaperBanana](https://github.com/dwzhu-pku/PaperBanana) (PKU) 
++ [ARIS](https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep.git) (SJTU).
+
+
+## 16. License
+
+MIT
